@@ -1,11 +1,8 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import joblib
-import matplotlib.pyplot as plt
+import xgboost as xgb
 import os
-import joblib
-
 
 # ---------------- PAGE CONFIG ----------------
 st.set_page_config(page_title="AI Tool Wear Monitor", page_icon="⚙️", layout="wide")
@@ -40,9 +37,7 @@ st.markdown('<p class="main-title">🔧 AI Tool Wear Monitoring Dashboard</p>', 
 st.markdown('<p class="sub-text">Smart Manufacturing • Predictive Maintenance • Industry 4.0</p>', unsafe_allow_html=True)
 st.markdown("---")
 
-# ---------------- LOAD MODEL ----------------
-
-# Load model from the same folder as app.py
+# ---------------- LOAD XGBOOST JSON MODEL ----------------
 MODEL_PATH = os.path.join(os.path.dirname(__file__), "tool_wear_xgb_pipeline.pkl")
 model = joblib.load(MODEL_PATH)
 
@@ -60,7 +55,7 @@ vib_spindle = st.sidebar.text_input("Spindle Vibration", "0.1")
 AE_table = st.sidebar.text_input("Acoustic Emission Table", "0.1")
 AE_spindle = st.sidebar.text_input("Acoustic Emission Spindle", "0.1")
 
-# Convert text inputs to float/int
+# Convert inputs to float/int
 try:
     run = int(run)
     DOC = float(DOC)
@@ -81,8 +76,7 @@ input_dict = {
     "AE_table":[AE_table], "AE_spindle":[AE_spindle]
 }
 input_df = pd.DataFrame(input_dict)
-input_df = pd.get_dummies(input_df)
-input_df = input_df.reindex(columns=model.feature_names_in_, fill_value=0)
+dmatrix = xgb.DMatrix(input_df)
 
 # ---------------- SESSION STATE FOR REPORTS ----------------
 if 'report_history' not in st.session_state:
@@ -94,7 +88,7 @@ if 'report_history' not in st.session_state:
 
 # ---------------- PREDICTION ----------------
 if st.button("🚀 Run Smart Diagnosis"):
-    wear = float(model.predict(input_df)[0])
+    wear = float(xgb_model.predict(dmatrix)[0])
     wear = max(wear,0)
     failure_threshold = 0.7
     rul = max(failure_threshold - wear, 0)
@@ -136,17 +130,6 @@ if st.button("🚀 Run Smart Diagnosis"):
         projected_wear.append(current_wear)
     trend_df = pd.DataFrame({"Cycle":future_cycles, "Projected Wear":projected_wear})
     st.line_chart(trend_df.set_index("Cycle"))
-
-    # --- FEATURE IMPORTANCE ---
-    st.markdown('<div class="section-header">🧠 AI Decision Factors</div>', unsafe_allow_html=True)
-    try:
-        xgb_model = model.named_steps["model"]
-        importance = xgb_model.feature_importances_
-        features = model.feature_names_in_
-        imp_df = pd.DataFrame({"Feature":features,"Importance":importance}).sort_values(by="Importance",ascending=False)
-        st.bar_chart(imp_df.set_index("Feature"))
-    except:
-        st.info("Feature importance not available.")
 
     # --- ADD TO RECENT REPORTS ---
     new_report = pd.DataFrame([{
