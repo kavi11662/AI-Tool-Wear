@@ -3,6 +3,9 @@ import pandas as pd
 import numpy as np
 import joblib
 import matplotlib.pyplot as plt
+import os
+import joblib
+
 
 # ---------------- PAGE CONFIG ----------------
 st.set_page_config(page_title="AI Tool Wear Monitor", page_icon="⚙️", layout="wide")
@@ -38,7 +41,10 @@ st.markdown('<p class="sub-text">Smart Manufacturing • Predictive Maintenance 
 st.markdown("---")
 
 # ---------------- LOAD MODEL ----------------
-model = joblib.load("tool_wear_xgb_pipeline.pkl")
+
+# Load model from the same folder as app.py
+MODEL_PATH = os.path.join(os.path.dirname(__file__), "tool_wear_xgb_pipeline.pkl")
+model = joblib.load(MODEL_PATH)
 
 # ---------------- SIDEBAR INPUTS ----------------
 st.sidebar.header("⚙️ Machine Parameters")
